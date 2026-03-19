@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "./assets/logo.png";
 import {
   Users,
   Activity,
@@ -22,6 +23,7 @@ import {
   Thermometer,
   Wind,
   Droplets,
+  FileCheck,
 } from "lucide-react";
 import {
   LineChart,
@@ -77,6 +79,7 @@ const navItems = [
   { icon: <Home size={20} />, label: "Dashboard", id: "dashboard", path: "/admin" },
   { icon: <Users size={20} />, label: "Patients", id: "patients", path: "/admin" },
   { icon: <Activity size={20} />, label: "Vital Records", id: "records", path: "/admin" },
+  { icon: <FileCheck size={20} />, label: "Audit Logs", id: "audit", path: "/admin/audit-logs" },
   { icon: <FileText size={20} />, label: "Reports", id: "reports", path: "/admin/reports" },
   { icon: <Settings size={20} />, label: "Settings", id: "settings", path: "/admin/settings" },
 ];
@@ -292,7 +295,7 @@ export default function AdminDashboard() {
       <aside className="admin-sidebar">
         {/* Logo */}
         <div className="sidebar-logo-wrap">
-          {/* Empty logo as requested */}
+          <img src={logo} alt="BantayKalusugan Logo" />
         </div>
 
         {/* Nav Icons */}

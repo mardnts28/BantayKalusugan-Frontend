@@ -5,6 +5,7 @@ import './AdminDashboard.css'
 import AdminDashboard from './AdminDashboard.jsx'
 import AdminReports from './AdminReports.jsx'
 import AdminSettings from './AdminSettings.jsx'
+import AdminAuditLogs from './AdminAuditLogs.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
