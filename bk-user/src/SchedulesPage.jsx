@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, MapPin, User, Calendar } from 'lucide-react';
 import Layout from './Layout.jsx';
+import styles from './user_dashboard.module.css';
 
 const SchedulesPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -51,11 +52,11 @@ const SchedulesPage = () => {
   return (
     <Layout
       heroLabel="Schedules"
-      heroTitle={<>My <span className="hero__title--gold">Appointments</span></>}
+      heroTitle={<>My <span className={styles['hero__title--gold']}>Appointments</span></>}
       heroDesc="Manage your health check-up appointments"
     >
-      <div className="container">
-        <section className="section section--white">
+      <div className={styles.container}>
+        <section className={`${styles.section} ${styles['section--white']}`}>
           {/* STATS CARDS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             <div style={{ padding: '1.5rem', borderRadius: '12px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '1rem' }}>

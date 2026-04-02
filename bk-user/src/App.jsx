@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import './user_dashboard.css';
 import Dashboard from './Dashboard.jsx';
 import AnalyticsPage from './AnalyticsPage';
 import SchedulesPage from './SchedulesPage';

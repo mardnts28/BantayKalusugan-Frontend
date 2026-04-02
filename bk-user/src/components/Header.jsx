@@ -1,26 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ChevronDown } from 'lucide-react';
+import styles from '../user_dashboard.module.css';
 
 const Header = () => {
   return (
-    <nav className="navbar">
-      <div className="navbar__logo">
-        <div className="navbar__logo-icon"></div>
+    <nav className={styles.navbar}>
+      <div className={styles.navbar__logo}>
+        <div className={styles['navbar__logo-icon']}></div>
         <span>BantayKalusugan</span>
       </div>
-      <div className="navbar__menu">
+      <div className={styles.navbar__menu}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginRight: '16px' }}>
-          <button className="top-header__btn top-header__btn--icon">
+          <button className={`${styles['top-header__btn']} ${styles['top-header__btn--icon']}`}>
             <Bell size={20} color="#4b5563" />
           </button>
-          <Link to="/profile" className="top-header__profile">
-            <div className="top-header__avatar">M</div>
-            <span className="top-header__name">Maria Santos</span>
+          <Link to="/profile" className={styles['top-header__profile']}>
+            <div className={styles['top-header__avatar']}>M</div>
+            <span className={styles['top-header__name']}>Maria Santos</span>
             <ChevronDown size={16} color="#4b5563" />
           </Link>
         </div>
-        <button className="btn btn--outline-navy btn--sm">Log Out</button>
+        <button className={`${styles.btn} ${styles['btn--outline-navy']} ${styles['btn--sm']}`}>Log Out</button>
       </div>
     </nav>
   );

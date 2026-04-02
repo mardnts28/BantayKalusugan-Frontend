@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Layout from './Layout.jsx';
 import { User, Mail, Lock, Phone, MapPin, Calendar as CalendarIcon, Shield, Edit2 } from 'lucide-react';
+import styles from './user_dashboard.module.css';
 
 const ProfilePage = () => {
   const [email, setEmail] = useState('maria.santos@example.com');
@@ -19,13 +20,13 @@ const ProfilePage = () => {
   return (
     <Layout
       heroLabel="Profile"
-      heroTitle={<>Your <span className="hero__title--gold">Profile</span></>}
+      heroTitle={<>Your <span className={styles['hero__title--gold']}>Profile</span></>}
       heroDesc="Manage your account and personal details."
     >
       <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', alignItems: 'start' }}>
         
         {/* Account Details Section */}
-        <section className="card" style={{ padding: '24px' }}>
+        <section className={styles.card} style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
             <Shield size={20} color="#2E5895" />
             <h3 style={{ fontSize: '1.2rem', color: '#1f2937', margin: 0 }}>Account Details</h3>
@@ -51,7 +52,7 @@ const ProfilePage = () => {
                 )}
                 <button 
                   onClick={() => setIsEditingEmail(!isEditingEmail)} 
-                  className="btn btn--sm" 
+                  className={`${styles.btn} ${styles['btn--sm']}`} 
                   style={{ backgroundColor: isEditingEmail ? '#1e3a8a' : '#f3f4f6', color: isEditingEmail ? '#fff' : '#4b5563' }}
                 >
                   {isEditingEmail ? 'Save' : 'Change Email'}
@@ -66,7 +67,7 @@ const ProfilePage = () => {
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ flex: 1, fontSize: '1rem', color: '#333', letterSpacing: '2px' }}>••••••••</div>
-                <button className="btn btn--outline-navy btn--sm">
+                <button className={`${styles.btn} ${styles['btn--outline-navy']} ${styles['btn--sm']}`}>
                   Change Password
                 </button>
               </div>
@@ -75,7 +76,7 @@ const ProfilePage = () => {
         </section>
 
         {/* Personal Details Section */}
-        <section className="card" style={{ padding: '24px' }}>
+        <section className={styles.card} style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
             <User size={20} color="#2E5895" />
             <h3 style={{ fontSize: '1.2rem', color: '#1f2937', margin: 0 }}>Personal Details</h3>
@@ -129,7 +130,7 @@ const ProfilePage = () => {
                 )}
                 <button 
                   onClick={() => setIsEditingPhone(!isEditingPhone)} 
-                  className="btn btn--sm" 
+                  className={`${styles.btn} ${styles['btn--sm']}`} 
                   style={{ backgroundColor: isEditingPhone ? '#1e3a8a' : '#f3f4f6', color: isEditingPhone ? '#fff' : '#4b5563', width: '100px', justifyContent: 'center' }}
                 >
                   {isEditingPhone ? 'Save' : <><Edit2 size={14}/> Edit</>}
@@ -157,7 +158,7 @@ const ProfilePage = () => {
                 )}
                 <button 
                   onClick={() => setIsEditingAddress(!isEditingAddress)} 
-                  className="btn btn--sm" 
+                  className={`${styles.btn} ${styles['btn--sm']}`} 
                   style={{ backgroundColor: isEditingAddress ? '#1e3a8a' : '#f3f4f6', color: isEditingAddress ? '#fff' : '#4b5563', width: '100px', justifyContent: 'center' }}
                 >
                   {isEditingAddress ? 'Save' : <><Edit2 size={14}/> Edit</>}

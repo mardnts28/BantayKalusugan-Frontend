@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Thermometer, HeartPulse, Scale, Activity } from 'lucide-react';
 import Layout from './Layout.jsx';
+import styles from './user_dashboard.module.css';
 
 const Dashboard = () => {
   const summaryData = [
@@ -231,36 +232,36 @@ const Dashboard = () => {
       heroLabel="Patient Dashboard"
       heroTitle={
         <>
-          Hello, <span className="hero__title--gold">Full Name</span>
+          Hello, <span className={styles['hero__title--gold']}>Full Name</span>
         </>
       }
       heroDesc="Your health summary at a glance."
     >
-      <section className="section section--white">
-        <div className="card-grid card-grid--4">
+      <section className={`${styles.section} ${styles['section--white']}`}>
+        <div className={`${styles['card-grid']} ${styles['card-grid--4']}`}>
           {summaryData.map((item, idx) => (
-            <div key={idx} className="card">
-              <div className="card__icon" style={{ backgroundColor: item.color }}>
+            <div key={idx} className={styles.card}>
+              <div className={styles.card__icon} style={{ backgroundColor: item.color }}>
                 {item.icon}
               </div>
-              <h3 className="card__title">{item.title}</h3>
-              <p className="card__desc">{item.sub}</p>
-              <p className="card__desc" style={{ fontSize: '0.70rem', marginTop: '4px' }}>{item.date}</p>
+              <h3 className={styles.card__title}>{item.title}</h3>
+              <p className={styles.card__desc}>{item.sub}</p>
+              <p className={styles.card__desc} style={{ fontSize: '0.70rem', marginTop: '4px' }}>{item.date}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="section section--grey">
-        <div className="subsection-header">
-          <h3 className="subsection-header__title">Latest Vital Signs</h3>
+      <section className={`${styles.section} ${styles['section--grey']}`}>
+        <div className={styles['subsection-header']}>
+          <h3 className={styles['subsection-header__title']}>Latest Vital Signs</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '0.8rem', color: '#666' }}>Recorded: Jul 22, 2025 at 9:30 AM</span>
-            <Link to="/analytics" className="card-grid__link">View all</Link>
+            <Link to="/analytics" className={styles['card-grid__link']}>View all</Link>
           </div>
         </div>
 
-        <div className="card-grid card-grid--3">
+        <div className={`${styles['card-grid']} ${styles['card-grid--3']}`}>
           {vitalsData.map((vital, idx) => {
             let statusColor = '#10b981'; // Normal (Green)
             let statusBg = '#d1fae5';
@@ -274,17 +275,17 @@ const Dashboard = () => {
             }
 
             return (
-              <div key={idx} className="card card--vital" style={{ backgroundColor: 'white', position: 'relative' }}>
+              <div key={idx} className={`${styles.card} ${styles['card--vital']}`} style={{ backgroundColor: 'white', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '16px', right: '16px', backgroundColor: statusBg, color: statusColor, padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>
                   {vital.status}
                 </div>
-                <div className="card__header" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#2E5895' }}>
+                <div className={styles.card__header} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#2E5895' }}>
                   {vital.icon}
-                  <span className="card__label" style={{ fontWeight: '600', fontSize: '0.9rem' }}>{vital.title}</span>
+                  <span className={styles.card__label} style={{ fontWeight: '600', fontSize: '0.9rem' }}>{vital.title}</span>
                 </div>
-                <div className="card__body">
-                  <h2 className="card__value" style={{ fontSize: '2rem', margin: '0', color: vital.status === 'Elevated' ? '#d97706' : (vital.status === 'Abnormal' ? '#dc2626' : '#2E5895') }}>{vital.value}</h2>
-                  <p className="card__unit" style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0' }}>{vital.unit}</p>
+                <div className={styles.card__body}>
+                  <h2 className={styles.card__value} style={{ fontSize: '2rem', margin: '0', color: vital.status === 'Elevated' ? '#d97706' : (vital.status === 'Abnormal' ? '#dc2626' : '#2E5895') }}>{vital.value}</h2>
+                  <p className={styles.card__unit} style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0' }}>{vital.unit}</p>
                 </div>
               </div>
             );
@@ -292,15 +293,15 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="section section--white">
+      <section className={`${styles.section} ${styles['section--white']}`}>
         <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           
           {/* Main Chart Card (70%) */}
-          <div className="card chart-card" style={{ flex: '1 1 65%', padding: '24px', minWidth: '400px' }}>
+          <div className={`${styles.card} ${styles['chart-card']}`} style={{ flex: '1 1 65%', padding: '24px', minWidth: '400px' }}>
             {/* Header / Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                <h3 className="subsection-header__title" style={{ marginBottom: '12px', fontSize: '1.25rem' }}>{metricConfigs[activeMetric].title}</h3>
+                <h3 className={styles['subsection-header__title']} style={{ marginBottom: '12px', fontSize: '1.25rem' }}>{metricConfigs[activeMetric].title}</h3>
                 
                 {/* Metric Toggles */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -419,7 +420,7 @@ const Dashboard = () => {
           </div>
 
           {/* Smart Insights Panel (30%) */}
-          <div className="card insights-card" style={{ flex: '1 1 30%', padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', minWidth: '280px', display: 'flex', flexDirection: 'column' }}>
+          <div className={`${styles.card} ${styles['insights-card']}`} style={{ flex: '1 1 30%', padding: '24px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', minWidth: '280px', display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#1e3a8a', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ background: '#dbeafe', padding: '6px', borderRadius: '8px' }}>💡</span> 
               Smart Insights
@@ -466,9 +467,9 @@ const Dashboard = () => {
                     </p>
                   </div>
                   
-                  <div style={{ marginTop: 'auto', paddingTop: '24px', textAlign: 'center' }}>
-                     <button className="btn btn--primary" style={{ width: '100%', padding: '12px', fontWeight: '600' }}>Consult Doctor about {activeMetric}</button>
-                  </div>
+                  {/* <div style={{ marginTop: 'auto', paddingTop: '24px', textAlign: 'center' }}>
+                     <button className={`${styles.btn} ${styles['btn--primary']}`} style={{ width: '100%', padding: '12px', fontWeight: '600' }}>Consult Doctor about {activeMetric}</button>
+                  </div> */}
                 </div>
               );
             })()}
@@ -476,13 +477,13 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="section section--white">
-        <div className="subsection-header">
-          <h3 className="subsection-header__title">Appointments</h3>
-          <Link to="/schedules" className="card-grid__link">View all</Link>
+      <section className={`${styles.section} ${styles['section--white']}`}>
+        <div className={styles['subsection-header']}>
+          <h3 className={styles['subsection-header__title']}>Appointments</h3>
+          <Link to="/schedules" className={styles['card-grid__link']}>View all</Link>
         </div>
-        <div className="table-wrapper">
-          <table className="appointments-table">
+        <div className={styles['table-wrapper']}>
+          <table className={styles['appointments-table']}>
             <thead>
               <tr>
                 <th>Appointment Type</th>
@@ -498,7 +499,7 @@ const Dashboard = () => {
                   <td>{apt.dateTime}</td>
                   <td>
                     <span
-                      className="status-badge"
+                      className={styles['status-badge']}
                       style={{
                         backgroundColor: apt.statusColor + '20',
                         color: apt.statusColor,
@@ -524,7 +525,7 @@ const Dashboard = () => {
 };
 
 const NavItem = ({ icon, label }) => (
-  <div className="sidebar__item">
+  <div className={styles.sidebar__item}>
     {React.cloneElement(icon, { size: 24 })}
     <span>{label}</span>
   </div>

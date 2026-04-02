@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import Layout from './Layout.jsx';
+import styles from './user_dashboard.module.css';
 
 const AppointmentsPage = () => {
   const [filters, setFilters] = useState({
@@ -38,18 +39,18 @@ const AppointmentsPage = () => {
   return (
     <Layout
       heroLabel="Appointments"
-      heroTitle={<>All <span className="hero__title--gold">Appointments</span></>}
+      heroTitle={<>All <span className={styles['hero__title--gold']}>Appointments</span></>}
       heroDesc="View and manage your appointment history."
     >
-      <div className="container">
-        <section className="section section--white">
-          <div className="subsection-header">
-            <h3 className="subsection-header__title">Past Appointments</h3>
+      <div className={styles.container}>
+        <section className={`${styles.section} ${styles['section--white']}`}>
+          <div className={styles['subsection-header']}>
+            <h3 className={styles['subsection-header__title']}>Past Appointments</h3>
           </div>
 
           {/* SEARCH FILTERS */}
-          <div className="search-filters">
-            <div className="search-field">
+          <div className={styles['search-filters']}>
+            <div className={styles['search-field']}>
               <Search size={16} />
               <input
                 type="date"
@@ -59,7 +60,7 @@ const AppointmentsPage = () => {
                 onChange={handleFilterChange}
               />
             </div>
-            <div className="search-field">
+            <div className={styles['search-field']}>
               <select name="status" value={filters.status} onChange={handleFilterChange}>
                 <option value="">All Statuses</option>
                 <option value="confirmed">Confirmed</option>
@@ -68,7 +69,7 @@ const AppointmentsPage = () => {
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
-            <div className="search-field">
+            <div className={styles['search-field']}>
               <select name="healthArea" value={filters.healthArea} onChange={handleFilterChange}>
                 <option value="">All Areas</option>
                 <option value="general">General</option>
@@ -80,8 +81,8 @@ const AppointmentsPage = () => {
             </div>
           </div>
 
-          <div className="table-wrapper">
-            <table className="appointments-table">
+          <div className={styles['table-wrapper']}>
+            <table className={styles['appointments-table']}>
               <thead>
                 <tr>
                   <th>Appointment Type</th>
@@ -97,7 +98,7 @@ const AppointmentsPage = () => {
                     <td>{apt.dateTime}</td>
                     <td>
                       <span 
-                        className="status-badge" 
+                        className={styles['status-badge']} 
                         style={{ 
                           backgroundColor: apt.statusColor + '20',
                           color: apt.statusColor,
@@ -123,4 +124,4 @@ const AppointmentsPage = () => {
   );
 };
 
-export default AppointmentsPage;
+export default AppointmentsPage;

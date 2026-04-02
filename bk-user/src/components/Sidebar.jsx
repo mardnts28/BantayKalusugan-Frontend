@@ -7,6 +7,7 @@ import {
   Calendar,
   Info
 } from 'lucide-react';
+import styles from '../user_dashboard.module.css';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: <LayoutDashboard /> },
@@ -18,7 +19,7 @@ const navItems = [
 
 const NavItem = ({ icon, label, active }) => (
   <div
-    className="sidebar__item"
+    className={styles.sidebar__item}
     style={{
       background: active ? 'rgba(46, 88, 149, 0.12)' : 'transparent',
       color: active ? '#2E5895' : undefined,
@@ -33,7 +34,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="sidebar">
+    <aside className={styles.sidebar}>
       {navItems.map((item) => (
         <Link key={item.to} to={item.to} style={{ textDecoration: 'none' }}>
           <NavItem icon={item.icon} label={item.label} active={location.pathname === item.to} />

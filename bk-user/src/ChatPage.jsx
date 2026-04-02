@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Plus, ArrowLeft, Send, X } from 'lucide-react';
 import Layout from './Layout.jsx';
+import styles from './user_dashboard.module.css';
 
 // Mock Data
 const initialChatsData = [
@@ -125,10 +126,10 @@ const ChatPage = () => {
   return (
     <Layout
       heroLabel="Messages"
-      heroTitle={<>Support <span className="hero__title--gold">Chat</span></>}
+      heroTitle={<>Support <span className={styles['hero__title--gold']}>Chat</span></>}
       heroDesc="Connect with your health center staff. Ask questions, request assistance, or follow up on appointments." 
     >
-      <section className="section section--white">
+      <section className={`${styles.section} ${styles['section--white']}`}>
         <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '650px' }}>
           
           {/* LIST VIEW */}
@@ -140,7 +141,7 @@ const ChatPage = () => {
                   <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: '700' }}>Conversations</h3>
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="btn btn--primary" 
+                    className={styles.btn + ' ' + styles['btn--primary']} 
                     style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', backgroundColor: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
                   >
                     <Plus size={18} /> New Message
@@ -383,14 +384,14 @@ const ChatPage = () => {
             <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: '#f8fafc' }}>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="btn btn--outline-navy"
+                className={`${styles.btn} ${styles['btn--outline-navy']}`}
                 style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: '600', color: '#475569', cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleCreateNewChat}
-                className="btn btn--primary"
+                className={`${styles.btn} ${styles['btn--primary']}`}
                 style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', opacity: (!newMessageTo.trim() || !newMessageContent.trim()) ? 0.6 : 1, cursor: (!newMessageTo.trim() || !newMessageContent.trim()) ? 'not-allowed' : 'pointer', backgroundColor: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600' }}
                 disabled={!newMessageTo.trim() || !newMessageContent.trim()}
               >

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Download } from 'lucide-react';
 import Layout from './Layout.jsx';
+import styles from './user_dashboard.module.css';
 
 const VitalsPage = () => {
   const [vitalFilters, setVitalFilters] = useState({
@@ -194,19 +195,19 @@ const VitalsPage = () => {
   return (
     <Layout
       heroLabel="Analytics"
-      heroTitle={<>All <span className="hero__title--gold">Vital Signs</span></>}
+      heroTitle={<>All <span className={styles['hero__title--gold']}>Vital Signs</span></>}
       heroDesc="View your complete vital signs history."
     >
-      <section className="section section--white">
+      <section className={`${styles.section} ${styles['section--white']}`}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>All Vital Sign Records</h3>
-          <button className="btn btn--primary btn--sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button className={`${styles.btn} ${styles['btn--primary']} ${styles['btn--sm']}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={16} /> Export
           </button>
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="card-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div className={styles['card-grid']} style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
           <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#fff', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <p style={{ fontSize: '1.5rem', fontWeight: '700', color: getAvgColor('bloodPressure', avgSystolic), marginBottom: '2px' }}>{avgSystolic} mmHg</p>
             <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Avg Systolic</p>
@@ -234,8 +235,8 @@ const VitalsPage = () => {
         </div>
 
           {/* SEARCH FILTERS */}
-          <div className="search-filters">
-            <div className="search-field">
+          <div className={styles['search-filters']}>
+            <div className={styles['search-field']}>
               <Search size={16} />
               <input
                 type="date"
@@ -245,7 +246,7 @@ const VitalsPage = () => {
                 onChange={handleVitalFilterChange}
               />
             </div>
-            <div className="search-field">
+            <div className={styles['search-field']}>
               <select name="vitalType" value={vitalFilters.vitalType} onChange={handleVitalFilterChange}>
                 <option value="">All Vitals</option>
                 <option value="bloodPressure">Blood Pressure</option>
@@ -258,8 +259,8 @@ const VitalsPage = () => {
             </div>
           </div>
 
-          <div className="table-wrapper">
-            <table className="vitals-table">
+          <div className={styles['table-wrapper']}>
+            <table className={styles['vitals-table']}>
               <thead>
                 <tr>
                   <th>Date</th>
