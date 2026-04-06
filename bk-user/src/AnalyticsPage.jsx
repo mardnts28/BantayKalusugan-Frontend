@@ -6,8 +6,7 @@ import styles from './user_dashboard.module.css';
 
 const AnalyticsPage = () => {
   const [vitalFilters, setVitalFilters] = useState({
-    date: '',
-    vitalType: ''
+    date: ''
   });
 
   // VITALS DATA
@@ -82,14 +81,7 @@ const AnalyticsPage = () => {
 
   // FILTERED DATA
   const filteredVitals = allVitalsData.filter(vital => {
-    const matchesDate = !vitalFilters.date || vital.date.includes(vitalFilters.date);
-    const matchesVital = !vitalFilters.vitalType || (vitalFilters.vitalType === 'bloodPressure' && vital.bloodPressure) ||
-                         (vitalFilters.vitalType === 'heartRate' && vital.heartRate) ||
-                         (vitalFilters.vitalType === 'temperature' && vital.temperature) ||
-                         (vitalFilters.vitalType === 'spO2' && vital.spO2) ||
-                         (vitalFilters.vitalType === 'respRate' && vital.respRate) ||
-                         (vitalFilters.vitalType === 'bmi' && vital.bmi);
-    return matchesDate && matchesVital;
+    return !vitalFilters.date || vital.date.includes(vitalFilters.date);
   });
 
   const handleVitalFilterChange = (e) => {
@@ -246,17 +238,7 @@ const AnalyticsPage = () => {
                 onChange={handleVitalFilterChange}
               />
             </div>
-            <div className={styles['search-field']}>
-              <select name="vitalType" value={vitalFilters.vitalType} onChange={handleVitalFilterChange}>
-                <option value="">All Vitals</option>
-                <option value="bloodPressure">Blood Pressure</option>
-                <option value="heartRate">Heart Rate</option>
-                <option value="temperature">Temperature</option>
-                <option value="spO2">SpO2</option>
-                <option value="respRate">Resp. Rate</option>
-                <option value="bmi">BMI</option>
-              </select>
-            </div>
+
           </div>
 
           <div className={styles['table-wrapper']}>
