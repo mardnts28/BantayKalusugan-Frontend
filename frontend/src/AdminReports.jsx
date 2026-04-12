@@ -1,20 +1,14 @@
-import styles from './AdminDashboard.module.css';
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import "./AdminDashboard.css";
+import AdminSidebar from "./components/AdminSidebar";
+import AdminProfileLink from "./components/AdminProfileLink";
+import AdminNotificationsDropdown from "./components/admin-dashboard/AdminNotificationsDropdown";
+import { adminFetch, AUTH_REDIRECT_ERROR } from "./utils/adminApi";
 import {
-    Home,
     Users,
     Activity,
     FileText,
-    Settings,
-    LogOut,
-    Bell,
-    ChevronDown,
     Download,
-    Calendar,
-    Filter,
-    TrendingUp,
-    TrendingDown,
     BarChart3,
     FileBarChart,
     Heart,
@@ -35,112 +29,221 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
-const navItems = [
-    { icon: <Home size={20} />, label: "Dashboard", id: "dashboard", path: "/admin" },
-    { icon: <Users size={20} />, label: "Patients", id: "patients", path: "/admin" },
-    { icon: <Activity size={20} />, label: "Vital Records", id: "records", path: "/admin" },
-    { icon: <FileText size={20} />, label: "Reports", id: "reports", path: "/admin/reports" },
-    { icon: <Settings size={20} />, label: "Settings", id: "settings", path: "/admin/settings" },
-];
 
-const monthlyReports = [
-    { month: "Jan", patients: 45, visits: 120, avgBP: 128 },
-    { month: "Feb", patients: 52, visits: 145, avgBP: 126 },
-    { month: "Mar", patients: 48, visits: 138, avgBP: 130 },
-    { month: "Apr", patients: 61, visits: 172, avgBP: 129 },
-    { month: "May", patients: 58, visits: 165, avgBP: 127 },
-    { month: "Jun", patients: 67, visits: 189, avgBP: 125 },
-];
+const CONDITION_COLORS = {
+    Normal: "#2E5895",
+    Hypertensive: "#FFC32B",
+    "High Risk": "#C23B21",
+    "Under Monitoring": "#F7E976",
+};
 
-const conditionDistribution = [
-    { name: "Normal", value: 45, color: "#2E5895" },
-    { name: "Hypertensive", value: 30, color: "#FFC32B" },
-    { name: "High Risk", value: 15, color: "#C23B21" },
-    { name: "Under Monitoring", value: 10, color: "#F7E976" },
-];
-
-const ageDistribution = [
-    { range: "18-30", count: 15 },
-    { range: "31-45", count: 28 },
-    { range: "46-60", count: 35 },
-    { range: "61-75", count: 18 },
-    { range: "76+", count: 4 },
-];
+const REPORT_TYPE_CONFIG = {
+    overview: {
+        label: "Overview Report",
+        description: "High-level snapshot of patient volume, vital signs, and condition trends.",
+    },
+    patients: {
+        label: "Patient Statistics",
+        description: "Focuses on patient volume, registration activity, and age mix.",
+    },
+    vitals: {
+        label: "Vital Signs Analysis",
+        description: "Focuses on blood pressure measurements and trends over time.",
+    },
+    conditions: {
+        label: "Health Conditions",
+        description: "Focuses on condition prevalence and the spread across age groups.",
+    },
+};
 
 export default function AdminReports() {
-    const navigate = useNavigate();
     const [reportType, setReportType] = useState("overview");
     const [dateRange, setDateRange] = useState("thisMonth");
+    const [exportFormat, setExportFormat] = useState("csv");
+    const [isExporting, setIsExporting] = useState(false);
+    const [overview, setOverview] = useState({
+        total_patients: 0,
+        bp_records_today: 0,
+        total_visits: 0,
+        avg_systolic: 0,
+        avg_diastolic: 0,
+        reports_generated: 0,
+    });
+    const [trends, setTrends] = useState({
+        bp_trends: [],
+        registrations: [],
+        monthly_summary: [],
+    });
+    const [distributions, setDistributions] = useState({
+        health_conditions: [],
+        age_distribution: [],
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    const handleLogout = () => {
-        navigate("/login");
+    const selectedReportConfig = REPORT_TYPE_CONFIG[reportType] ?? REPORT_TYPE_CONFIG.overview;
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const fetchReports = async () => {
+            setIsLoading(true);
+            setError("");
+
+            try {
+                const [overviewRes, trendsRes, distributionsRes] = await Promise.all([
+                    adminFetch(`/api/admin/reports/overview?date_range=${dateRange}`),
+                    adminFetch(`/api/admin/reports/trends?date_range=${dateRange}`),
+                    adminFetch(`/api/admin/reports/distributions?date_range=${dateRange}`),
+                ]);
+
+                if (!overviewRes.ok || !trendsRes.ok || !distributionsRes.ok) {
+                    throw new Error("Failed to load reports data");
+                }
+
+                const [overviewData, trendsData, distributionData] = await Promise.all([
+                    overviewRes.json(),
+                    trendsRes.json(),
+                    distributionsRes.json(),
+                ]);
+
+                if (!isCancelled) {
+                    setOverview(overviewData);
+                    setTrends(trendsData);
+                    setDistributions(distributionData);
+                }
+            } catch (fetchError) {
+                if (fetchError.message !== AUTH_REDIRECT_ERROR && !isCancelled) {
+                    setError(fetchError.message || "Unable to load reports.");
+                }
+            } finally {
+                if (!isCancelled) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchReports();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [dateRange]);
+
+    const monthlyReports = useMemo(() => {
+        return trends.monthly_summary || [];
+    }, [trends]);
+
+    const bpTrends = useMemo(() => {
+        return trends.bp_trends || [];
+    }, [trends]);
+
+    const registrationTrends = useMemo(() => {
+        return trends.registrations || [];
+    }, [trends]);
+
+    const conditionDistribution = useMemo(() => {
+        return (distributions.health_conditions || []).map((item) => ({
+            ...item,
+            color: CONDITION_COLORS[item.name] || "#CCCCCC",
+        }));
+    }, [distributions]);
+
+    const ageDistribution = useMemo(() => {
+        return distributions.age_distribution || [];
+    }, [distributions]);
+
+    const renderChartCard = (title, icon, content) => (
+        <div className="chart-card">
+            <div className="chart-card-header" style={{ marginBottom: "1rem" }}>
+                <h3 className="chart-card-title">{title}</h3>
+                {icon}
+            </div>
+            {content}
+        </div>
+    );
+
+    const handleExportReport = async () => {
+        setIsExporting(true);
+        try {
+            const params = new URLSearchParams({
+                format: exportFormat,
+                report_type: reportType,
+                date_range: dateRange,
+            });
+            const response = await adminFetch(`/api/admin/reports/export?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error("Failed to export report");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `admin-report-${reportType}-${dateRange}-${new Date().toISOString().split("T")[0]}.${exportFormat}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (exportError) {
+            if (exportError.message !== AUTH_REDIRECT_ERROR) {
+                setError(exportError.message || "Unable to export report.");
+            }
+        } finally {
+            setIsExporting(false);
+        }
     };
 
-    const handleNavClick = (path) => {
-        navigate(path);
-    };
+    const metricCards = [
+        {
+            label: "Total Patients",
+            value: String(overview.total_patients ?? 0),
+            icon: <Users size={24} />,
+            color: "#2E5895",
+        },
+        {
+            label: "Total Visits",
+            value: String(overview.total_visits ?? 0),
+            icon: <Activity size={24} />,
+            color: "#FFC32B",
+        },
+        {
+            label: "Avg Blood Pressure",
+            value: `${Math.round(overview.avg_systolic ?? 0)}/${Math.round(overview.avg_diastolic ?? 0)}`,
+            icon: <Heart size={24} />,
+            color: "#C23B21",
+        },
+        {
+            label: "Reports Generated",
+            value: String(overview.reports_generated ?? 0),
+            icon: <FileText size={24} />,
+            color: "#F7E976",
+        },
+    ];
 
     return (
-        <div className={styles['admin-layout']}>
-            {/* Sidebar */}
-            <aside className={styles['admin-sidebar']}>
-                <div className={styles['sidebar-logo-wrap']}>
-                    {/* Empty logo as requested */}
-                </div>
-
-                <nav className={styles['sidebar-nav']}>
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => handleNavClick(item.path)}
-                            className={`${styles['sidebar-nav-btn']} ${item.id === 'reports' ? styles.active : ''}`}
-                            title={item.label}
-                        >
-                            {item.icon}
-                            <span className={styles['nav-tooltip']}>{item.label}</span>
-                        </button>
-                    ))}
-                </nav>
-
-                <button
-                    onClick={handleLogout}
-                    className={styles['sidebar-logout-btn']}
-                    title="Logout"
-                >
-                    <LogOut size={20} />
-                </button>
-            </aside>
+        <div className="admin-layout">
+            {/* Shared Sidebar */}
+            <AdminSidebar activeNav="reports" />
 
             {/* Main Content */}
-            <div className={styles['admin-main']}>
+            <div className="admin-main">
                 {/* Header */}
-                <header className={styles['admin-topbar']}>
-                    <div className={styles['topbar-left']}>
-                        <h1 className={styles['topbar-title']}>Reports & Analytics</h1>
-                        <p className={styles['topbar-subtitle']}>Generate and view health monitoring reports</p>
+                <header className="admin-topbar">
+                    <div className="topbar-left">
+                        <h1 className="topbar-title">Reports & Analytics</h1>
+                        <p className="topbar-subtitle">Generate and view health monitoring reports</p>
                     </div>
-                    <div className={styles['topbar-right']}>
-                        <button className={styles['topbar-bell-btn']}>
-                            <Bell size={20} />
-                            <span className={styles['bell-dot']} />
-                        </button>
-                        <div className={styles['topbar-avatar']}>
-                            <div className={styles['topbar-avatar-circle']}>
-                                AS
-                            </div>
-                            <div className={styles['topbar-avatar-info']}>
-                                <span className={styles['topbar-avatar-name']}>Admin Staff</span>
-                                <span style={{ fontSize: "0.75rem", color: "#888" }}>Administrator</span>
-                            </div>
-                            <ChevronDown size={16} style={{ color: "#888", marginLeft: "0.25rem" }} />
-                        </div>
+                    <div className="topbar-right">
+                        <AdminNotificationsDropdown />
+                        <AdminProfileLink />
                     </div>
                 </header>
 
                 {/* Content */}
-                <main className={styles['admin-body']}>
+                <main className="admin-body">
                     {/* Report Controls */}
-                    <div className={`${styles['bg-white']} ${styles['rounded-xl']} ${styles['p-6']} ${styles['shadow-sm']} ${styles['mb-6']}`} style={{ borderRadius: "1rem", backgroundColor: "#fff", padding: "1.5rem", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: "1.5rem" }}>
+                    <div className="bg-white rounded-xl p-6 shadow-sm mb-6" style={{ borderRadius: "1rem", backgroundColor: "#fff", padding: "1.5rem", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: "1.5rem" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -175,136 +278,191 @@ export default function AdminReports() {
                                         <option value="thisYear">This Year</option>
                                     </select>
                                 </div>
+
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#888", fontWeight: 600 }}>
+                                        Export Format
+                                    </label>
+                                    <select
+                                        value={exportFormat}
+                                        onChange={(e) => setExportFormat(e.target.value)}
+                                        style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem", border: "1px solid #e0e0e0", fontSize: "0.875rem", outline: "none", color: "#333" }}
+                                    >
+                                        <option value="csv">CSV</option>
+                                        <option value="pdf">PDF</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <button
-                                style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 1.25rem", borderRadius: "0.5rem", fontSize: "0.875rem", backgroundColor: "#2E5895", color: "white", fontWeight: 600, border: "none", cursor: "pointer" }}
+                                onClick={handleExportReport}
+                                disabled={isLoading || isExporting || monthlyReports.length === 0}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    padding: "0.625rem 1.25rem",
+                                    borderRadius: "0.5rem",
+                                    fontSize: "0.875rem",
+                                    backgroundColor: "#2E5895",
+                                    color: "white",
+                                    fontWeight: 600,
+                                    border: "none",
+                                    cursor: isLoading || isExporting || monthlyReports.length === 0 ? "not-allowed" : "pointer",
+                                    opacity: isLoading || isExporting || monthlyReports.length === 0 ? 0.6 : 1,
+                                }}
                             >
                                 <Download size={16} />
-                                Export Report
+                                {isExporting ? "Exporting..." : "Export Report"}
                             </button>
+                        </div>
+
+                        <div
+                            style={{
+                                marginTop: "1rem",
+                                padding: "0.875rem 1rem",
+                                borderRadius: "0.75rem",
+                                backgroundColor: "#f6f9fc",
+                                color: "#4a5568",
+                                fontSize: "0.875rem",
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            <strong style={{ color: "#2E5895" }}>{selectedReportConfig.label}:</strong>{" "}
+                            {selectedReportConfig.description}
                         </div>
                     </div>
 
                     {/* Key Metrics */}
-                    <div className={styles['stat-cards-row']} style={{ marginBottom: "1.5rem" }}>
-                        {[
-                            { label: "Total Patients", value: "100", change: "+12%", icon: <Users size={24} />, color: "#2E5895" },
-                            { label: "Total Visits", value: "189", change: "+8%", icon: <Activity size={24} />, color: "#FFC32B" },
-                            { label: "Avg Blood Pressure", value: "125/82", change: "-3%", icon: <Heart size={24} />, color: "#C23B21" },
-                            { label: "Reports Generated", value: "24", change: "+15%", icon: <FileText size={24} />, color: "#F7E976" },
-                        ].map((metric, idx) => (
-                            <div key={idx} className={styles['stat-card']}>
+                    <div className="stat-cards-row" style={{ marginBottom: "1.5rem" }}>
+                        {metricCards.map((metric, idx) => (
+                            <div key={idx} className="stat-card">
                                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.75rem" }}>
                                     <div
-                                        className={styles['stat-card-icon']}
+                                        className="stat-card-icon"
                                         style={{ backgroundColor: `${metric.color}20`, color: metric.color }}
                                     >
                                         {metric.icon}
                                     </div>
-                                    <div className={styles['stat-card-change']} style={{ color: metric.change.startsWith('+') ? "#2E5895" : "#C23B21", backgroundColor: "transparent" }}>
-                                        {metric.change.startsWith('+') ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                        {metric.change}
-                                    </div>
                                 </div>
-                                <div className={styles['stat-card-body']}>
-                                    <div className={styles['stat-card-label']}>{metric.label}</div>
-                                    <div className={styles['stat-card-value']}>{metric.value}</div>
+                                <div className="stat-card-body">
+                                    <div className="stat-card-label">{metric.label}</div>
+                                    <div className="stat-card-value">{metric.value}</div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
+                    {isLoading && (
+                        <div className="chart-card" style={{ marginBottom: "1.5rem", textAlign: "center", color: "#666" }}>
+                            Loading reports data...
+                        </div>
+                    )}
+
+                    {error && !isLoading && (
+                        <div className="chart-card" style={{ marginBottom: "1.5rem", textAlign: "center", color: "#C23B21" }}>
+                            {error}
+                        </div>
+                    )}
+
                     {/* Charts Grid */}
-                    <div className={styles['charts-row']} style={{ marginBottom: "1.5rem" }}>
-                        {/* Monthly Trends */}
-                        <div className={styles['chart-card']}>
-                            <div className={styles['chart-card-header']} style={{ marginBottom: "1rem" }}>
-                                <h3 className={styles['chart-card-title']}>Monthly Patient Trends</h3>
-                                <BarChart3 size={20} color="#888" />
-                            </div>
-                            <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={monthlyReports}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#888" }} />
-                                    <YAxis tick={{ fontSize: 12, fill: "#888" }} />
-                                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                                    <Bar dataKey="patients" fill="#2E5895" radius={[8, 8, 0, 0]} name="Patients" />
-                                    <Bar dataKey="visits" fill="#FFC32B" radius={[8, 8, 0, 0]} name="Visits" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                    <div className="charts-row" style={{ marginBottom: "1.5rem" }}>
+                        {(reportType === "overview" || reportType === "patients" || reportType === "vitals") &&
+                            renderChartCard(
+                                "Monthly Patient Trends",
+                                <BarChart3 size={20} color="#888" />,
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={monthlyReports}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#888" }} />
+                                        <YAxis tick={{ fontSize: 12, fill: "#888" }} />
+                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                                        <Bar dataKey="patients" fill="#2E5895" radius={[8, 8, 0, 0]} name="Patients" />
+                                        <Bar dataKey="visits" fill="#FFC32B" radius={[8, 8, 0, 0]} name="Visits" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
 
-                        {/* Health Condition Distribution */}
-                        <div className={styles['chart-card']}>
-                            <div className={styles['chart-card-header']} style={{ marginBottom: "1rem" }}>
-                                <h3 className={styles['chart-card-title']}>Health Condition Distribution</h3>
-                                <FileBarChart size={20} color="#888" />
-                            </div>
-                            <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
-                                    <Pie
-                                        data={conditionDistribution}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                    >
-                                        {conditionDistribution.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
+                        {reportType === "patients" &&
+                            renderChartCard(
+                                "Registration Trends",
+                                <Users size={20} color="#888" />,
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={registrationTrends}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#888" }} />
+                                        <YAxis tick={{ fontSize: 12, fill: "#888" }} />
+                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                                        <Bar dataKey="patients" fill="#2E5895" radius={[8, 8, 0, 0]} name="New Patients" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
 
-                        {/* Average BP Trends */}
-                        <div className={styles['chart-card']}>
-                            <div className={styles['chart-card-header']} style={{ marginBottom: "1rem" }}>
-                                <h3 className={styles['chart-card-title']}>Average Blood Pressure Trend</h3>
-                                <Activity size={20} color="#888" />
-                            </div>
-                            <ResponsiveContainer width="100%" height={250}>
-                                <LineChart data={monthlyReports}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#888" }} />
-                                    <YAxis tick={{ fontSize: 12, fill: "#888" }} />
-                                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                                    <Line type="monotone" dataKey="avgBP" stroke="#C23B21" strokeWidth={2.5} dot={{ r: 5, fill: "#C23B21" }} name="Avg Systolic BP" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        {(reportType === "overview" || reportType === "conditions") &&
+                            renderChartCard(
+                                "Health Condition Distribution",
+                                <FileBarChart size={20} color="#888" />,
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <PieChart>
+                                        <Pie
+                                            data={conditionDistribution}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={false}
+                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                        >
+                                            {conditionDistribution.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
 
-                        {/* Age Distribution */}
-                        <div className={styles['chart-card']}>
-                            <div className={styles['chart-card-header']} style={{ marginBottom: "1rem" }}>
-                                <h3 className={styles['chart-card-title']}>Patient Age Distribution</h3>
-                                <Users size={20} color="#888" />
-                            </div>
-                            <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={ageDistribution} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis type="number" tick={{ fontSize: 12, fill: "#888" }} />
-                                    <YAxis dataKey="range" type="category" tick={{ fontSize: 12, fill: "#888" }} />
-                                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                                    <Bar dataKey="count" fill="#FFC32B" radius={[0, 8, 8, 0]} name="Count" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        {(reportType === "overview" || reportType === "vitals") &&
+                            renderChartCard(
+                                "Average Blood Pressure Trend",
+                                <Activity size={20} color="#888" />,
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <LineChart data={bpTrends}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#888" }} />
+                                        <YAxis tick={{ fontSize: 12, fill: "#888" }} />
+                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                                        <Line type="monotone" dataKey="systolic" stroke="#C23B21" strokeWidth={2.5} dot={{ r: 5, fill: "#C23B21" }} name="Systolic" />
+                                        <Line type="monotone" dataKey="diastolic" stroke="#2E5895" strokeWidth={2.5} dot={{ r: 5, fill: "#2E5895" }} name="Diastolic" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
+
+                        {(reportType === "overview" || reportType === "patients" || reportType === "conditions") &&
+                            renderChartCard(
+                                "Patient Age Distribution",
+                                <Users size={20} color="#888" />,
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={ageDistribution} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis type="number" tick={{ fontSize: 12, fill: "#888" }} />
+                                        <YAxis dataKey="range" type="category" tick={{ fontSize: 12, fill: "#888" }} />
+                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                                        <Bar dataKey="count" fill="#FFC32B" radius={[0, 8, 8, 0]} name="Count" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                     </div>
 
                     {/* Summary Table */}
-                    <div className={styles['table-card']}>
-                        <div className={styles['table-card-header']}>
-                            <h3 className={styles['table-card-title']}>Monthly Summary</h3>
+                    <div className="table-card">
+                        <div className="table-card-header">
+                            <h3 className="table-card-title">Monthly Summary</h3>
                         </div>
-                        <div className={styles['table-wrapper']}>
-                            <table className={styles['data-table']}>
+                        <div className="table-wrapper">
+                            <table className="data-table">
                                 <thead>
                                     <tr>
                                         <th>Month</th>
@@ -320,7 +478,7 @@ export default function AdminReports() {
                                             <td>{report.patients}</td>
                                             <td>{report.visits}</td>
                                             <td>
-                                                <span style={{ fontWeight: 600, color: "#C23B21" }}>{report.avgBP}</span>
+                                                <span style={{ fontWeight: 600, color: "#C23B21" }}>{report.avg_bp}</span>
                                             </td>
                                         </tr>
                                     ))}

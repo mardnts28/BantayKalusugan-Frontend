@@ -1,15 +1,11 @@
-import styles from './AdminDashboard.module.css';
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import "./AdminDashboard.css";
+import AdminSidebar from "./components/AdminSidebar";
+import AdminProfileLink from "./components/AdminProfileLink";
+import AdminNotificationsDropdown from "./components/admin-dashboard/AdminNotificationsDropdown";
+import { adminFetch, AUTH_REDIRECT_ERROR } from "./utils/adminApi";
+import { getStoredUser, setStoredUser } from "./utils/authSession";
 import {
-    Home,
-    Users,
-    Activity,
-    FileText,
-    Settings,
-    LogOut,
-    Bell,
-    ChevronDown,
     Save,
     User,
     Lock,
@@ -22,23 +18,17 @@ import {
     Check,
 } from "lucide-react";
 
-const navItems = [
-    { icon: <Home size={20} />, label: "Dashboard", id: "dashboard", path: "/admin" },
-    { icon: <Users size={20} />, label: "Patients", id: "patients", path: "/admin" },
-    { icon: <Activity size={20} />, label: "Vital Records", id: "records", path: "/admin" },
-    { icon: <FileText size={20} />, label: "Reports", id: "reports", path: "/admin/reports" },
-    { icon: <Settings size={20} />, label: "Settings", id: "settings", path: "/admin/settings" },
-];
 
 export default function AdminSettings() {
-    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("profile");
-    const [showSaveNotification, setShowSaveNotification] = useState(false);
+    const [notification, setNotification] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Profile settings
     const [profileData, setProfileData] = useState({
         name: "Admin Staff",
-        email: "admin@bantaykalusugan.ph",
+        email: "admin@bantaykalusugan.com",
         phone: "+63 912 345 6789",
         role: "Administrator",
     });
@@ -69,17 +59,227 @@ export default function AdminSettings() {
         confirmPassword: "",
     });
 
-    const handleLogout = () => {
-        navigate("/login");
+    const showNotification = (message, type = "success") => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
     };
 
-    const handleNavClick = (path) => {
-        navigate(path);
+    const readErrorMessage = async (response, fallback) => {
+        try {
+            const payload = await response.json();
+            return payload.detail || fallback;
+        } catch {
+            return fallback;
+        }
     };
 
-    const handleSave = () => {
-        setShowSaveNotification(true);
-        setTimeout(() => setShowSaveNotification(false), 3000);
+    useEffect(() => {
+        let isCancelled = false;
+
+        const fetchSettings = async () => {
+            setIsLoading(true);
+            try {
+                const [profileRes, barangayRes, systemRes] = await Promise.all([
+                    adminFetch("/api/admin/settings/profile"),
+                    adminFetch("/api/admin/settings/barangay"),
+                    adminFetch("/api/admin/settings/system"),
+                ]);
+
+                if (!profileRes.ok || !barangayRes.ok || !systemRes.ok) {
+                    throw new Error("Failed to load settings");
+                }
+
+                const [profile, barangay, system] = await Promise.all([
+                    profileRes.json(),
+                    barangayRes.json(),
+                    systemRes.json(),
+                ]);
+
+                if (isCancelled) {
+                    return;
+                }
+
+                setProfileData({
+                    name: profile.name || "Admin Staff",
+                    email: profile.email || "",
+                    phone: profile.phone || "",
+                    role: profile.role || "Administrator",
+                });
+
+                setBarangayData({
+                    name: barangay.name || "",
+                    municipality: barangay.municipality || "",
+                    province: barangay.province || "",
+                    address: barangay.address || "",
+                    contactNumber: barangay.contact_number || "",
+                });
+
+                setSystemSettings({
+                    language: system.language || "en",
+                    timezone: system.timezone || "Asia/Manila",
+                    dateFormat: system.date_format || "MM/DD/YYYY",
+                    notifications: Boolean(system.notifications),
+                    emailAlerts: Boolean(system.email_alerts),
+                    autoBackup: Boolean(system.auto_backup),
+                });
+            } catch (err) {
+                if (err.message !== AUTH_REDIRECT_ERROR && !isCancelled) {
+                    showNotification(err.message || "Unable to load settings", "error");
+                }
+            } finally {
+                if (!isCancelled) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchSettings();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, []);
+
+    const handleSaveProfile = async () => {
+        setIsSaving(true);
+        try {
+            const response = await adminFetch("/api/admin/settings/profile", {
+                method: "PUT",
+                body: JSON.stringify({
+                    name: profileData.name,
+                    email: profileData.email,
+                    phone: profileData.phone,
+                    role: profileData.role,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response, "Failed to save profile settings"));
+            }
+
+            const updated = await response.json();
+            setProfileData({
+                name: updated.name,
+                email: updated.email,
+                phone: updated.phone,
+                role: updated.role,
+            });
+            showNotification("Profile settings saved successfully!");
+
+            const storedUser = getStoredUser() || {};
+            const nameParts = String(updated.name || "").trim().split(/\s+/).filter(Boolean);
+            const firstName = nameParts[0] || storedUser.first_name || "Admin";
+            const lastName = nameParts.slice(1).join(" ") || storedUser.last_name || "Staff";
+
+            setStoredUser({
+                ...storedUser,
+                first_name: firstName,
+                last_name: lastName,
+                email: updated.email,
+                phone: updated.phone,
+                role: storedUser.role || "admin",
+            });
+        } catch (err) {
+            if (err.message !== AUTH_REDIRECT_ERROR) {
+                showNotification(err.message || "Failed to save profile settings", "error");
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSaveBarangay = async () => {
+        setIsSaving(true);
+        try {
+            const response = await adminFetch("/api/admin/settings/barangay", {
+                method: "PUT",
+                body: JSON.stringify({
+                    name: barangayData.name,
+                    municipality: barangayData.municipality,
+                    province: barangayData.province,
+                    address: barangayData.address,
+                    contact_number: barangayData.contactNumber,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response, "Failed to save barangay settings"));
+            }
+
+            showNotification("Barangay settings saved successfully!");
+        } catch (err) {
+            if (err.message !== AUTH_REDIRECT_ERROR) {
+                showNotification(err.message || "Failed to save barangay settings", "error");
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSaveSystem = async () => {
+        setIsSaving(true);
+        try {
+            const response = await adminFetch("/api/admin/settings/system", {
+                method: "PUT",
+                body: JSON.stringify({
+                    language: systemSettings.language,
+                    timezone: systemSettings.timezone,
+                    date_format: systemSettings.dateFormat,
+                    notifications: systemSettings.notifications,
+                    email_alerts: systemSettings.emailAlerts,
+                    auto_backup: systemSettings.autoBackup,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response, "Failed to save system settings"));
+            }
+
+            showNotification("System settings saved successfully!");
+        } catch (err) {
+            if (err.message !== AUTH_REDIRECT_ERROR) {
+                showNotification(err.message || "Failed to save system settings", "error");
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleUpdatePassword = async () => {
+        if (!securityData.currentPassword || !securityData.newPassword || !securityData.confirmPassword) {
+            showNotification("Please complete all password fields", "error");
+            return;
+        }
+
+        if (securityData.newPassword !== securityData.confirmPassword) {
+            showNotification("New password and confirmation do not match", "error");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const response = await adminFetch("/api/admin/settings/change-password", {
+                method: "POST",
+                body: JSON.stringify({
+                    current_password: securityData.currentPassword,
+                    new_password: securityData.newPassword,
+                    confirm_password: securityData.confirmPassword,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response, "Failed to update password"));
+            }
+
+            setSecurityData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+            showNotification("Password updated successfully!");
+        } catch (err) {
+            if (err.message !== AUTH_REDIRECT_ERROR) {
+                showNotification(err.message || "Failed to update password", "error");
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const tabs = [
@@ -90,9 +290,9 @@ export default function AdminSettings() {
     ];
 
     return (
-        <div className={styles['admin-layout']}>
+        <div className="admin-layout">
             {/* Save Notification */}
-            {showSaveNotification && (
+            {notification && (
                 <div
                     style={{
                         position: "fixed",
@@ -105,74 +305,42 @@ export default function AdminSettings() {
                         padding: "0.75rem 1rem",
                         borderRadius: "0.5rem",
                         boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                        backgroundColor: "#2E5895",
+                        backgroundColor: notification.type === "error" ? "#C23B21" : "#2E5895",
                         color: "white"
                     }}
                 >
                     <Check size={20} color="white" />
                     <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
-                        Settings saved successfully!
+                        {notification.message}
                     </span>
                 </div>
             )}
 
-            {/* Sidebar */}
-            <aside className={styles['admin-sidebar']}>
-                <div className={styles['sidebar-logo-wrap']}>
-                    {/* Empty logo as requested */}
-                </div>
-
-                <nav className={styles['sidebar-nav']}>
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => handleNavClick(item.path)}
-                            className={`${styles['sidebar-nav-btn']} ${item.id === 'settings' ? styles.active : ''}`}
-                            title={item.label}
-                        >
-                            {item.icon}
-                            <span className={styles['nav-tooltip']}>{item.label}</span>
-                        </button>
-                    ))}
-                </nav>
-
-                <button
-                    onClick={handleLogout}
-                    className={styles['sidebar-logout-btn']}
-                    title="Logout"
-                >
-                    <LogOut size={20} />
-                </button>
-            </aside>
+            {/* Shared Sidebar */}
+            <AdminSidebar activeNav="settings" />
 
             {/* Main Content */}
-            <div className={styles['admin-main']}>
+            <div className="admin-main">
                 {/* Header */}
-                <header className={styles['admin-topbar']}>
-                    <div className={styles['topbar-left']}>
-                        <h1 className={styles['topbar-title']}>Settings</h1>
-                        <p className={styles['topbar-subtitle']}>Manage your system preferences and configurations</p>
+                <header className="admin-topbar">
+                    <div className="topbar-left">
+                        <h1 className="topbar-title">Settings</h1>
+                        <p className="topbar-subtitle">Manage your system preferences and configurations</p>
                     </div>
-                    <div className={styles['topbar-right']}>
-                        <button className={styles['topbar-bell-btn']}>
-                            <Bell size={20} />
-                            <span className={styles['bell-dot']} />
-                        </button>
-                        <div className={styles['topbar-avatar']}>
-                            <div className={styles['topbar-avatar-circle']}>
-                                AS
-                            </div>
-                            <div className={styles['topbar-avatar-info']}>
-                                <span className={styles['topbar-avatar-name']}>Admin Staff</span>
-                                <span style={{ fontSize: "0.75rem", color: "#888" }}>Administrator</span>
-                            </div>
-                            <ChevronDown size={16} style={{ color: "#888", marginLeft: "0.25rem" }} />
-                        </div>
+                    <div className="topbar-right">
+                        <AdminNotificationsDropdown />
+                        <AdminProfileLink name={profileData.name} role={profileData.role} />
                     </div>
                 </header>
 
                 {/* Content */}
-                <main className={styles['admin-body']}>
+                <main className="admin-body">
+                    {isLoading && (
+                        <div className="chart-card" style={{ marginBottom: "1rem", textAlign: "center", color: "#666" }}>
+                            Loading settings...
+                        </div>
+                    )}
+
                     <div style={{ maxWidth: "64rem", margin: "0 auto", width: "100%" }}>
                         {/* Tabs - adapted to use settings-tabs if we add them, but for now inline */}
                         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", paddingBottom: "0.5rem", overflowX: "auto" }}>
@@ -204,7 +372,7 @@ export default function AdminSettings() {
 
                         {/* Profile Settings */}
                         {activeTab === "profile" && (
-                            <div className={styles['chart-card']} style={{ width: "100%" }}>
+                            <div className="chart-card" style={{ width: "100%" }}>
                                 <h2 style={{ fontSize: "1.125rem", marginBottom: "1rem", color: "#333", fontWeight: 700 }}>
                                     Profile Information
                                 </h2>
@@ -271,18 +439,19 @@ export default function AdminSettings() {
                                 </div>
 
                                 <button
-                                    onClick={handleSave}
+                                    onClick={handleSaveProfile}
+                                    disabled={isLoading || isSaving}
                                     style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 1.5rem", borderRadius: "0.5rem", fontSize: "0.875rem", backgroundColor: "#2E5895", color: "white", fontWeight: 600, border: "none", cursor: "pointer", marginTop: "1.5rem" }}
                                 >
                                     <Save size={16} />
-                                    Save Changes
+                                    {isSaving ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
                         )}
 
                         {/* Barangay Info */}
                         {activeTab === "barangay" && (
-                            <div className={styles['chart-card']} style={{ width: "100%" }}>
+                            <div className="chart-card" style={{ width: "100%" }}>
                                 <h2 style={{ fontSize: "1.125rem", marginBottom: "1rem", color: "#333", fontWeight: 700 }}>
                                     Barangay Information
                                 </h2>
@@ -366,18 +535,19 @@ export default function AdminSettings() {
                                 </div>
 
                                 <button
-                                    onClick={handleSave}
+                                    onClick={handleSaveBarangay}
+                                    disabled={isLoading || isSaving}
                                     style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 1.5rem", borderRadius: "0.5rem", fontSize: "0.875rem", backgroundColor: "#2E5895", color: "white", fontWeight: 600, border: "none", cursor: "pointer", marginTop: "1.5rem" }}
                                 >
                                     <Save size={16} />
-                                    Save Changes
+                                    {isSaving ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
                         )}
 
                         {/* System Settings */}
                         {activeTab === "system" && (
-                            <div className={styles['chart-card']} style={{ width: "100%" }}>
+                            <div className="chart-card" style={{ width: "100%" }}>
                                 <h2 style={{ fontSize: "1.125rem", marginBottom: "1rem", color: "#333", fontWeight: 700 }}>
                                     System Preferences
                                 </h2>
@@ -455,18 +625,19 @@ export default function AdminSettings() {
                                 </div>
 
                                 <button
-                                    onClick={handleSave}
+                                    onClick={handleSaveSystem}
+                                    disabled={isLoading || isSaving}
                                     style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 1.5rem", borderRadius: "0.5rem", fontSize: "0.875rem", backgroundColor: "#2E5895", color: "white", fontWeight: 600, border: "none", cursor: "pointer", marginTop: "1.5rem" }}
                                 >
                                     <Save size={16} />
-                                    Save Changes
+                                    {isSaving ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
                         )}
 
                         {/* Security Settings */}
                         {activeTab === "security" && (
-                            <div className={styles['chart-card']} style={{ width: "100%" }}>
+                            <div className="chart-card" style={{ width: "100%" }}>
                                 <h2 style={{ fontSize: "1.125rem", marginBottom: "1rem", color: "#333", fontWeight: 700 }}>
                                     Security & Password
                                 </h2>
@@ -533,11 +704,12 @@ export default function AdminSettings() {
                                 </div>
 
                                 <button
-                                    onClick={handleSave}
+                                    onClick={handleUpdatePassword}
+                                    disabled={isLoading || isSaving}
                                     style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.625rem 1.5rem", borderRadius: "0.5rem", fontSize: "0.875rem", backgroundColor: "#2E5895", color: "white", fontWeight: 600, border: "none", cursor: "pointer", marginTop: "1.5rem" }}
                                 >
                                     <Save size={16} />
-                                    Update Password
+                                    {isSaving ? "Updating..." : "Update Password"}
                                 </button>
                             </div>
                         )}

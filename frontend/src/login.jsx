@@ -2,6 +2,7 @@ import styles from './login.module.css';
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, MapPin, Phone, Facebook, Twitter, Instagram, Menu, X } from "lucide-react";
+import { clearAuthSession, setStoredUser } from "./utils/authSession";
 
 import logo from "./assets/logo.svg";
 
@@ -121,14 +122,16 @@ export default function Login() {
       const data = await response.json();
 
       if (!response.ok) {
+        clearAuthSession();
         setError(data.detail || "Login failed. Please try again.");
         setLoading(false);
         return;
       }
 
       // Only navigate if we got a valid user back
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.user && data.access_token) {
+        setStoredUser(data.user);
+        localStorage.setItem("token", data.access_token);
 
         // Route based on user role from the database
         if (data.user.role === "admin") {
@@ -137,10 +140,11 @@ export default function Login() {
           navigate("/dashboard");
         }
       } else {
+        clearAuthSession();
         setError("Login failed. Please try again.");
         setLoading(false);
       }
-    } catch (err) {
+    } catch {
       setError("Unable to connect to the server. Please try again later.");
       setLoading(false);
     }
